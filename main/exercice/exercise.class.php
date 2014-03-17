@@ -1677,6 +1677,16 @@ class Exercise
 
             $form->addElement('html', '</div>');
 
+
+            // Advanced exercise settings.
+
+            // Extra fields. (Injecting question extra fields!)
+            if (!empty($this->id)) {
+                $extraFields = new ExtraField('exercise');
+                $extraFields->add_elements($form, $this->id);
+            }
+
+
             $form->addElement('html', '</div>'); //End advanced setting
             $form->addElement('html', '</div>');
         }
@@ -1864,6 +1874,12 @@ class Exercise
             $this->random_answers = 0;
         }
         $this->save($type);
+
+        $field_value = new ExtraFieldValue('exercise');
+        $params = $form->getSubmitValues();
+        $params['exercise_id'] = $this->id;
+
+        $field_value->save_field_values($params);
     }
 
     function search_engine_save()
@@ -4204,7 +4220,16 @@ class Exercise
                 exercise_attempt($questionScore, $answer, $quesId, $exeId, 0, $this->id);
             } elseif ($answerType == ORAL_EXPRESSION) {
                 $answer = $choice;
-                exercise_attempt($questionScore, $answer, $quesId, $exeId, 0, $this->id, $nano);
+                $basename = basename($nano->load_filename_if_exists(false));
+                if (!empty($basename)) {
+                    $table_c_quiz_question = Database::get_course_table(TABLE_QUIZ_QUESTION);
+                    $sql_oral = "SELECT ponderation FROM $table_c_quiz_question WHERE c_id = $course_id AND id = $quesId LIMIT 1";
+                    $res = Database::query($sql_oral);
+                    $oralScore = Database::result($res,0,'ponderation');
+                    exercise_attempt($oralScore, $answer, $quesId, $exeId, 0, $this->id, $nano);
+                } else {
+                    exercise_attempt($questionScore, $answer, $quesId, $exeId, 0, $this->id, $nano);
+                }
             } elseif ($answerType == UNIQUE_ANSWER || $answerType == UNIQUE_ANSWER_IMAGE || $answerType == UNIQUE_ANSWER_NO_OPTION) {
                 $answer = $choice;
                 exercise_attempt($questionScore, $answer, $quesId, $exeId, 0, $this->id);
